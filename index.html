@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AllergyLog v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0c0c12;--surface:#14141e;--surface2:#1c1c2a;--surface3:#242436;
+  --border:rgba(255,255,255,0.07);
+  --blue:#7eb8f7;--green:#6ee7b7;--red:#fca5a5;--purple:#c4b5fd;
+  --gold:#fbbf24;--orange:#fb923c;--pink:#f9a8d4;
+  --text:#eeeef5;--muted:#7070a0;--radius:16px;
+}
+body{font-family:'Noto Sans Thai',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+
+body{display:flex;flex-direction:column;height:100vh;max-width:480px;margin:0 auto;}
+
+/* STATUS */
+.status-bar{display:none;}
+
+/* TOP NAV */
+.top-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 14px 0;flex-shrink:0;}
+.app-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.app-name{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.backup-btns{display:flex;gap:6px;}
+.bk-btn{padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s;}
+.bk-btn:active{opacity:.7;}
+.bk-btn.exp{border-color:rgba(110,231,183,.3);color:var(--green);}
+.bk-btn.imp{border-color:rgba(196,181,253,.3);color:var(--purple);}
+.bk-btn.sync{border-color:rgba(251,191,36,.3);color:var(--gold);}
+.sync-status{font-size:10px;color:var(--muted);text-align:center;padding:4px 0 0;height:16px;}
+.sync-status.ok{color:var(--green);}
+.sync-status.err{color:var(--red);}
+.sync-status.loading{color:var(--gold);}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:20px;}
+.modal-overlay.hidden{display:none;}
+.modal{background:#1a1a26;border:1px solid var(--border);border-radius:20px;width:360px;max-width:calc(100vw - 24px);padding:20px 18px;max-height:80vh;display:flex;flex-direction:column;}
+.modal h3{font-size:15px;font-weight:800;margin-bottom:6px;}
+.modal p{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px;}
+.modal textarea{width:100%;background:#0c0c18;border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text);font-size:11px;font-family:monospace;resize:none;height:120px;outline:none;margin-bottom:12px;}
+.modal-btns{display:flex;gap:8px;}
+.mbtn{flex:1;padding:11px;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;}
+.mbtn.primary{background:linear-gradient(135deg,#6ee7b7,#34b38a);color:#071a0f;}
+.mbtn.secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.mbtn.danger{background:linear-gradient(135deg,#7eb8f7,#5a96d8);color:#08081a;}
+
+.tabs{display:flex;gap:3px;}
+.tab{flex:1;padding:8px 2px 10px;border:none;background:none;color:var(--muted);font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;border-radius:10px 10px 0 0;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.tab.active{background:var(--surface2);color:var(--text);}
+.tab-icon{font-size:17px;}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;scrollbar-width:none;background:var(--bg);min-height:0;}
+.content::-webkit-scrollbar{display:none;}
+.page{display:none;padding:14px 12px 20px;}
+.page.active{display:block;}
+
+/* ── GUIDE ── */
+.guide-hero{background:linear-gradient(135deg,#1a1f3a,#141830);border:1px solid rgba(126,184,247,.2);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;}
+.guide-hero h2{font-size:17px;font-weight:900;color:var(--blue);margin-bottom:3px;}
+.guide-hero p{font-size:11.5px;color:var(--muted);line-height:1.5;}
+.section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;overflow:hidden;}
+.sec-head{padding:11px 14px;display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none;}
+.sec-head:active{background:var(--surface2);}
+.sec-emoji{font-size:19px;}
+.sec-title{font-size:13.5px;font-weight:700;flex:1;}
+.sec-chev{font-size:11px;color:var(--muted);transition:transform .2s;}
+.section.open .sec-chev{transform:rotate(180deg);}
+.sec-body{display:none;padding:10px 14px 14px;border-top:1px solid var(--border);}
+.section.open .sec-body{display:block;}
+.gi{display:flex;gap:9px;margin-bottom:9px;align-items:flex-start;}
+.gi:last-child{margin-bottom:0;}
+.gi-ic{font-size:16px;flex-shrink:0;margin-top:1px;}
+.gi-t{font-size:13px;font-weight:700;margin-bottom:1px;}
+.gi-d{font-size:11.5px;color:#8888aa;line-height:1.5;}
+.alert-box{background:rgba(252,165,165,.1);border:1px solid rgba(252,165,165,.25);border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:12px;color:var(--red);font-weight:600;line-height:1.5;}
+.hb{color:var(--blue);}.hg{color:var(--green);}.hr{color:var(--red);}.ho{color:var(--gold);}
+
+/* ── LOG ── */
+.log-form{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px;margin-bottom:10px;}
+.log-form h3{font-size:13.5px;font-weight:800;margin-bottom:10px;}
+.flabel{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;margin-bottom:5px;display:block;}
+.frow{margin-bottom:10px;}
+.chips{display:flex;flex-wrap:wrap;gap:5px;}
+.chip{padding:5px 11px;border-radius:100px;border:1px solid var(--border);background:var(--surface2);font-size:11.5px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;}
+.chip.sel{background:rgba(126,184,247,.15);border-color:var(--blue);color:var(--blue);}
+.sev-row{display:flex;gap:5px;}
+.sev-btn{flex:1;padding:7px 2px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);font-size:11.5px;font-weight:700;color:var(--muted);cursor:pointer;text-align:center;transition:all .15s;}
+.sev-btn.s1.sel{background:rgba(110,231,183,.15);border-color:var(--green);color:var(--green);}
+.sev-btn.s2.sel{background:rgba(251,191,36,.15);border-color:var(--gold);color:var(--gold);}
+.sev-btn.s3.sel{background:rgba(252,165,165,.15);border-color:var(--red);color:var(--red);}
+.tchips{display:flex;flex-wrap:wrap;gap:5px;}
+.tchip{padding:4px 9px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;}
+.tchip.sel{background:rgba(196,181,253,.15);border-color:var(--purple);color:var(--purple);}
+textarea.ni{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:9px 11px;color:var(--text);font-family:inherit;font-size:12.5px;resize:none;min-height:58px;outline:none;line-height:1.5;}
+textarea.ni:focus{border-color:rgba(126,184,247,.4);}
+.save-btn{width:100%;padding:12px;border:none;border-radius:11px;background:linear-gradient(135deg,#7eb8f7,#5a96d8);color:#08081a;font-family:inherit;font-size:13.5px;font-weight:900;cursor:pointer;transition:opacity .15s;}
+.save-btn:active{opacity:.8;}
+.hist-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.hist-head h3{font-size:13.5px;font-weight:800;}
+.hcount{background:var(--surface2);border:1px solid var(--border);padding:3px 9px;border-radius:100px;font-size:10.5px;font-weight:700;color:var(--muted);}
+.log-entry{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px 12px;margin-bottom:7px;position:relative;}
+.entry-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;}
+.entry-date{font-size:10.5px;color:var(--muted);font-weight:600;}
+.entry-sev{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:100px;}
+.sm{background:rgba(110,231,183,.15);color:var(--green);}
+.smod{background:rgba(251,191,36,.15);color:var(--gold);}
+.ssev{background:rgba(252,165,165,.15);color:var(--red);}
+.esymp{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:5px;}
+.echip{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:5px;background:rgba(126,184,247,.1);color:var(--blue);}
+.etrig{font-size:11px;color:var(--muted);margin-bottom:3px;}
+.etrig span{color:var(--purple);}
+.enote{font-size:11.5px;color:#8888a8;line-height:1.5;font-style:italic;}
+.edel{position:absolute;top:9px;right:9px;background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:2px 5px;border-radius:5px;}
+.empty{text-align:center;padding:36px 16px;color:var(--muted);}
+.empty .big{font-size:38px;margin-bottom:8px;}
+.empty p{font-size:12.5px;line-height:1.6;}
+
+/* ── ROUTINE ── */
+.routine-date{text-align:center;margin-bottom:12px;}
+.routine-date .rd{font-size:13px;font-weight:700;color:var(--muted);}
+.routine-date .score-ring{width:80px;height:80px;margin:10px auto 6px;position:relative;}
+.routine-date .score-ring svg{transform:rotate(-90deg);}
+.score-num{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:22px;font-weight:900;color:var(--text);}
+.score-label{font-size:11px;color:var(--muted);font-weight:600;}
+
+.routine-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;overflow:hidden;}
+.rs-head{padding:11px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);}
+.rs-emoji{font-size:18px;}
+.rs-title{font-size:13px;font-weight:800;flex:1;}
+.rs-score{font-size:11px;font-weight:700;padding:2px 8px;border-radius:100px;}
+.rs-body{padding:10px 14px 12px;}
+
+/* Routine items */
+.ri{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+.ri:last-child{border-bottom:none;}
+.ri-check{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .2s;font-size:12px;}
+.ri-check.done{border-color:var(--green);background:rgba(110,231,183,.15);color:var(--green);}
+.ri-info{flex:1;}
+.ri-name{font-size:13px;font-weight:600;color:var(--text);}
+.ri-desc{font-size:11px;color:var(--muted);margin-top:1px;}
+.ri-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px;margin-left:auto;flex-shrink:0;}
+.tag-sleep{background:rgba(196,181,253,.15);color:var(--purple);}
+.tag-food{background:rgba(110,231,183,.15);color:var(--green);}
+.tag-care{background:rgba(126,184,247,.15);color:var(--blue);}
+.tag-move{background:rgba(251,191,36,.15);color:var(--gold);}
+
+/* Sleep tracker */
+.sleep-row{display:flex;gap:6px;margin-bottom:8px;align-items:center;}
+.sleep-label{font-size:11.5px;color:var(--muted);font-weight:600;width:52px;}
+.time-picker{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;}
+.time-picker:focus{border-color:rgba(196,181,253,.4);}
+.sleep-dur{text-align:center;padding:6px;background:rgba(196,181,253,.08);border-radius:8px;font-size:12px;font-weight:700;color:var(--purple);}
+
+/* Meal log */
+.meal-row{display:flex;gap:6px;margin-bottom:6px;align-items:center;}
+.meal-icon{font-size:18px;flex-shrink:0;}
+.meal-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-family:inherit;font-size:12.5px;outline:none;}
+.meal-input:focus{border-color:rgba(110,231,183,.4);}
+.meal-good{border-color:rgba(110,231,183,.3)!important;}
+.meal-bad{border-color:rgba(252,165,165,.3)!important;}
+
+/* Water */
+.water-row{display:flex;align-items:center;gap:8px;}
+.water-glasses{display:flex;gap:4px;flex-wrap:wrap;}
+.wg{font-size:20px;cursor:pointer;opacity:.3;transition:all .15s;filter:grayscale(1);}
+.wg.filled{opacity:1;filter:none;}
+.water-label{font-size:11px;color:var(--muted);font-weight:600;}
+
+.save-routine-btn{width:100%;padding:11px;border:none;border-radius:11px;background:linear-gradient(135deg,#6ee7b7,#34b38a);color:#071a0f;font-family:inherit;font-size:13px;font-weight:900;cursor:pointer;margin-top:10px;}
+.save-routine-btn:active{opacity:.8;}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px;}
+.scard{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:12px;text-align:center;}
+.snum{font-size:26px;font-weight:900;line-height:1;}
+.slabel{font-size:10.5px;color:var(--muted);margin-top:3px;font-weight:600;}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:8px;}
+.ctitle{font-size:12.5px;font-weight:800;margin-bottom:10px;}
+.bar-row{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.bar-lbl{font-size:11px;color:var(--muted);width:72px;text-align:right;flex-shrink:0;line-height:1.2;}
+.bar-track{flex:1;background:var(--surface2);border-radius:100px;height:9px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:100px;transition:width .5s ease;}
+.bar-val{font-size:10.5px;font-weight:700;width:22px;text-align:right;flex-shrink:0;}
+.trig-row{background:var(--surface2);border-radius:9px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.tr-name{font-size:12.5px;font-weight:700;}
+.tr-cnt{font-size:11.5px;font-weight:700;color:var(--purple);}
+.routine-compliance{display:flex;gap:4px;flex-wrap:wrap;}
+.rc-day{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-direction:column;gap:1px;}
+
+/* BOTTOM NAV */
+.bottom-nav{background:#06060e;border-top:1px solid var(--border);padding:9px 0 12px;display:flex;justify-content:space-around;flex-shrink:0;}
+.bnav{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;cursor:pointer;font-family:inherit;font-size:10px;font-weight:600;color:var(--muted);transition:color .15s;}
+.bnav.active{color:var(--blue);}
+.bnav-ic{font-size:20px;}
+.home-ind{display:none;}
+.home-bar{display:none;}
+
+/* TOAST */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(16px);background:#1a2a1a;border:1px solid var(--green);color:var(--green);padding:9px 18px;border-radius:100px;font-size:12.5px;font-weight:700;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* hidden file input */
+#import-input{display:none;}
+</style>
+</head>
+<body>
+
+
+<!-- Status -->
+<div class="status-bar"><span id="clock">9:41</span><span>📶🔋</span></div>
+
+<!-- Top nav -->
+<div class="top-nav">
+  <div class="app-row">
+    <div class="app-name">🌿 AllergyLog</div>
+    <div class="backup-btns">
+      <button class="bk-btn exp" onclick="exportData()">📤 Export</button>
+      <button class="bk-btn sync" onclick="syncToSheets()">☁️ Sync</button>
+      <button class="bk-btn imp" onclick="document.getElementById('import-modal').classList.remove('hidden')">📥 Import</button>
+    </div>
+  </div>
+  <div class="sync-status" id="sync-status"></div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('guide')"><span class="tab-icon">📖</span>คู่มือ</button>
+    <button class="tab" onclick="switchTab('log')"><span class="tab-icon">✏️</span>บันทึก</button>
+    <button class="tab" onclick="switchTab('routine')"><span class="tab-icon">🌅</span>Routine</button>
+    <button class="tab" onclick="switchTab('stats')"><span class="tab-icon">📊</span>สถิติ</button>
+  </div>
+</div>
+<input type="file" id="import-input" accept=".json" onchange="importData(event)">
+
+<!-- Export Modal -->
+<div class="modal-overlay hidden" id="export-modal">
+  <div class="modal">
+    <h3>📤 Export ข้อมูล</h3>
+    <p>กด <strong>"Copy ทั้งหมด"</strong> แล้วไปวางใน <strong>Notes</strong> หรือ <strong>LINE Saved Messages</strong> เพื่อ backup ครับ</p>
+    <textarea id="export-text" readonly onclick="this.select()"></textarea>
+    <div class="modal-btns">
+      <button class="mbtn primary" onclick="copyExport()">📋 Copy ทั้งหมด</button>
+      <button class="mbtn secondary" onclick="closeModal('export-modal')">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal-overlay hidden" id="import-modal">
+  <div class="modal">
+    <h3>📥 Import ข้อมูล</h3>
+    <p>วาง JSON ที่ Copy ไว้จาก Notes ลงช่องด้านล่าง แล้วกด Import ครับ</p>
+    <textarea id="import-text" placeholder="วาง JSON ที่นี่..."></textarea>
+    <div class="modal-btns">
+      <button class="mbtn danger" onclick="doImport()">📥 Import</button>
+      <button class="mbtn secondary" onclick="closeModal('import-modal')">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Content -->
+<div class="content">
+
+<!-- ── GUIDE ── -->
+<div class="page active" id="page-guide">
+  <div class="guide-hero">
+    <h2>💊 คู่มือภูมิแพ้ฝุ่น</h2>
+    <p>ยา · อาหาร · พฤติกรรม — แตะหัวข้อเพื่อขยาย</p>
+  </div>
+  <div class="section open" id="s1">
+    <div class="sec-head" onclick="toggleSec('s1')"><span class="sec-emoji">💊</span><span class="sec-title">Telfast (Fexofenadine)</span><span class="sec-chev">▼</span></div>
+    <div class="sec-body">
+      <div class="alert-box">❌ ห้ามทานพร้อมน้ำผลไม้! → ดื่มกับ <strong>น้ำเปล่า</strong> เท่านั้น ✅</div>
+      <div class="gi"><span class="gi-ic">⭐</span><div><div class="gi-t hb">แทบไม่ง่วง</div><div class="gi-d">ขับรถ/ทำงานได้ปกติ ออกฤทธิ์เร็ว</div></div></div>
+      <div class="gi"><span class="gi-ic">🥶</span><div><div class="gi-t">หนาวสั่น ≠ ยา</div><div class="gi-d">เกิดจาก <span class="ho">อักเสบสะสม + นอนดึก</span> ไม่ใช่ผลข้างเคียง</div></div></div>
+    </div>
+  </div>
+  <div class="section" id="s2">
+    <div class="sec-head" onclick="toggleSec('s2')"><span class="sec-emoji">🥗</span><span class="sec-title">อาหารสู้ภูมิแพ้</span><span class="sec-chev">▼</span></div>
+    <div class="sec-body">
+      <div class="gi"><span class="gi-ic">🍊</span><div><div class="gi-t hg">ส้ม/ฝรั่ง</div><div class="gi-d">วิตามินซีสูง → ต้านฮิสตามีน</div></div></div>
+      <div class="gi"><span class="gi-ic">🧅</span><div><div class="gi-t hg">หอมแดง/แอปเปิ้ลทั้งเปลือก</div><div class="gi-d">เควอซิทิน → ยาแก้แพ้จากธรรมชาติ</div></div></div>
+      <div class="gi"><span class="gi-ic">🐟</span><div><div class="gi-t hg">ปลาทะเล/แซลมอน</div><div class="gi-d">โอเมก้า 3 → ลดอักเสบในโพรงจมูก</div></div></div>
+      <div class="gi"><span class="gi-ic">🥦</span><div><div class="gi-t hg">ผักหลากสี+โยเกิร์ต</div><div class="gi-d">จุลินทรีย์ดี → รากฐานภูมิคุ้มกัน</div></div></div>
+    </div>
+  </div>
+  <div class="section" id="s3">
+    <div class="sec-head" onclick="toggleSec('s3')"><span class="sec-emoji">🚫</span><span class="sec-title">อาหารกระตุ้นภูมิแพ้</span><span class="sec-chev">▼</span></div>
+    <div class="sec-body">
+      <div class="gi"><span class="gi-ic">🍟</span><div><div class="gi-t hr">ฟาสต์ฟู้ด/ของทอด</div><div class="gi-d">อักเสบ อาการรุนแรงขึ้น หายช้า</div></div></div>
+      <div class="gi"><span class="gi-ic">🍭</span><div><div class="gi-t hr">ของหวาน/น้ำตาลสูง</div><div class="gi-d">กดระบบภูมิคุ้มกันโดยตรง</div></div></div>
+      <div class="gi"><span class="gi-ic">🥛</span><div><div class="gi-t hr">นมวัว (บางราย)</div><div class="gi-d">มีเสมหะข้นขึ้น → ลองงดดู</div></div></div>
+    </div>
+  </div>
+  <div class="section" id="s4">
+    <div class="sec-head" onclick="toggleSec('s4')"><span class="sec-emoji">🛌</span><span class="sec-title">พฤติกรรม (สำคัญกว่ายา)</span><span class="sec-chev">▼</span></div>
+    <div class="sec-body">
+      <div class="gi"><span class="gi-ic">1️⃣</span><div><div class="gi-t">พิฆาตไรฝุ่น</div><div class="gi-d">ซักผ้าปูที่นอนน้ำร้อนทุกสัปดาห์ ❌ ห้ามมีตุ๊กตา/พรมในห้องนอน</div></div></div>
+      <div class="gi"><span class="gi-ic">2️⃣</span><div><div class="gi-t">นอนก่อน 23:00 ⚠️</div><div class="gi-d">ร่างกายซ่อมแซมได้ — ตื่นสายทดแทนไม่ได้!</div></div></div>
+      <div class="gi"><span class="gi-ic">3️⃣</span><div><div class="gi-t">ล้างจมูกเช้า-เย็น</div><div class="gi-d">น้ำเกลือล้างฝุ่นและน้ำมูกที่ค้างออก</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── LOG ── -->
+<div class="page" id="page-log">
+  <div class="log-form">
+    <h3>✏️ บันทึกอาการวันนี้</h3>
+    <div class="frow"><label class="flabel">อาการที่มี</label>
+      <div class="chips" id="sym-chips">
+        <div class="chip" onclick="toggleC(this)">🤧 จาม</div><div class="chip" onclick="toggleC(this)">💧 น้ำมูก</div>
+        <div class="chip" onclick="toggleC(this)">👁 ตาคัน</div><div class="chip" onclick="toggleC(this)">😤 คัดจมูก</div>
+        <div class="chip" onclick="toggleC(this)">😴 อ่อนเพลีย</div><div class="chip" onclick="toggleC(this)">🥶 หนาวสั่น</div>
+        <div class="chip" onclick="toggleC(this)">🤧 เสมหะ</div><div class="chip" onclick="toggleC(this)">😮‍💨 หายใจลำบาก</div>
+      </div>
+    </div>
+    <div class="frow"><label class="flabel">ความรุนแรง</label>
+      <div class="sev-row">
+        <div class="sev-btn s1" onclick="setSev(this,1)">🟢 เล็กน้อย</div>
+        <div class="sev-btn s2" onclick="setSev(this,2)">🟡 ปานกลาง</div>
+        <div class="sev-btn s3" onclick="setSev(this,3)">🔴 รุนแรง</div>
+      </div>
+    </div>
+    <div class="frow"><label class="flabel">สาเหตุที่คิด</label>
+      <div class="tchips" id="trig-chips">
+        <div class="tchip" onclick="toggleC(this)">🛏 ไรฝุ่น</div><div class="tchip" onclick="toggleC(this)">🌫 อากาศ</div>
+        <div class="tchip" onclick="toggleC(this)">🌸 เกสร</div><div class="tchip" onclick="toggleC(this)">🐱 ขนสัตว์</div>
+        <div class="tchip" onclick="toggleC(this)">🍟 อาหาร</div><div class="tchip" onclick="toggleC(this)">😴 นอนดึก</div>
+        <div class="tchip" onclick="toggleC(this)">💪 เครียด</div><div class="tchip" onclick="toggleC(this)">❓ ไม่แน่ใจ</div>
+      </div>
+    </div>
+    <div class="frow"><label class="flabel">หมายเหตุ / กินยาหรือยัง?</label>
+      <textarea class="ni" id="note-in" placeholder="เช่น กินยา Telfast แล้ว, อยู่นอกบ้าน..."></textarea>
+    </div>
+    <button class="save-btn" onclick="saveLog()">💾 บันทึกอาการ</button>
+  </div>
+  <div class="hist-head"><h3>📋 ประวัติการแพ้</h3><span class="hcount" id="ecnt">0 รายการ</span></div>
+  <div id="hist-list"></div>
+</div>
+
+<!-- ── ROUTINE ── -->
+<div class="page" id="page-routine">
+  <div class="routine-date">
+    <div class="rd" id="routine-date-label"></div>
+    <div class="score-ring">
+      <svg width="80" height="80" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="34" fill="none" stroke="#1c1c2a" stroke-width="8"/>
+        <circle id="score-circle" cx="40" cy="40" r="34" fill="none" stroke="#6ee7b7" stroke-width="8"
+          stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round"/>
+      </svg>
+      <div class="score-num" id="score-num">0%</div>
+    </div>
+    <div class="score-label">คะแนน Routine วันนี้</div>
+  </div>
+
+  <!-- Sleep -->
+  <div class="routine-section">
+    <div class="rs-head"><span class="rs-emoji">😴</span><span class="rs-title">การนอน</span><span class="rs-score tag-sleep" id="sleep-score">0/3</span></div>
+    <div class="rs-body">
+      <div class="sleep-row">
+        <span class="sleep-label">เข้านอน</span>
+        <input type="time" class="time-picker" id="bed-time" value="22:30" onchange="calcSleep()">
+      </div>
+      <div class="sleep-row">
+        <span class="sleep-label">ตื่นนอน</span>
+        <input type="time" class="time-picker" id="wake-time" value="06:30" onchange="calcSleep()">
+      </div>
+      <div class="sleep-dur" id="sleep-dur">⏱ ชั่วโมงนอน: — ชม.</div>
+      <div style="margin-top:10px;">
+        <div class="ri">
+          <div class="ri-check" id="rc-before11" onclick="toggleRI('before11')"></div>
+          <div class="ri-info"><div class="ri-name">เข้านอนก่อน 23:00</div><div class="ri-desc">สำคัญที่สุด ร่างกายซ่อมแซมช่วง 23:00–02:00</div></div>
+          <span class="ri-tag tag-sleep">นอน</span>
+        </div>
+        <div class="ri">
+          <div class="ri-check" id="rc-sleep7" onclick="toggleRI('sleep7')"></div>
+          <div class="ri-info"><div class="ri-name">นอนครบ 7–8 ชั่วโมง</div><div class="ri-desc">ภูมิคุ้มกันฟื้นฟูได้เต็มที่</div></div>
+          <span class="ri-tag tag-sleep">นอน</span>
+        </div>
+        <div class="ri">
+          <div class="ri-check" id="rc-nophone" onclick="toggleRI('nophone')"></div>
+          <div class="ri-info"><div class="ri-name">วางมือถือก่อนนอน 30 นาที</div><div class="ri-desc">แสงสีฟ้ากดฮอร์โมนนอน</div></div>
+          <span class="ri-tag tag-sleep">นอน</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Food -->
+  <div class="routine-section">
+    <div class="rs-head"><span class="rs-emoji">🥗</span><span class="rs-title">อาหาร</span><span class="rs-score tag-food" id="food-score">0/4</span></div>
+    <div class="rs-body">
+      <div class="meal-row"><span class="meal-icon">🌅</span><input class="meal-input" id="meal-morning" placeholder="เช้า — กินอะไร?"></div>
+      <div class="meal-row"><span class="meal-icon">☀️</span><input class="meal-input" id="meal-noon" placeholder="กลางวัน — กินอะไร?"></div>
+      <div class="meal-row"><span class="meal-icon">🌙</span><input class="meal-input" id="meal-eve" placeholder="เย็น — กินอะไร?"></div>
+      <div style="margin-top:10px;">
+        <div class="ri">
+          <div class="ri-check" id="rc-novit" onclick="toggleRI('novit')"></div>
+          <div class="ri-info"><div class="ri-name">กินผลไม้วิตามินซี</div><div class="ri-desc">ส้ม ฝรั่ง มะนาว → ต้านฮิสตามีน</div></div>
+          <span class="ri-tag tag-food">อาหาร</span>
+        </div>
+        <div class="ri">
+          <div class="ri-check" id="rc-nojunk" onclick="toggleRI('nojunk')"></div>
+          <div class="ri-info"><div class="ri-name">หลีกเลี่ยงของทอด/ฟาสต์ฟู้ด</div><div class="ri-desc">ลดการอักเสบในร่างกาย</div></div>
+          <span class="ri-tag tag-food">อาหาr</span>
+        </div>
+        <div class="ri">
+          <div class="ri-check" id="rc-nosugar" onclick="toggleRI('nosugar')"></div>
+          <div class="ri-info"><div class="ri-name">จำกัดน้ำตาล</div><div class="ri-desc">น้ำตาลกดภูมิคุ้มกัน</div></div>
+          <span class="ri-tag tag-food">อาหาร</span>
+        </div>
+        <div class="ri">
+          <div class="ri-check" id="rc-yogurt" onclick="toggleRI('yogurt')"></div>
+          <div class="ri-info"><div class="ri-name">กินโยเกิร์ต/โปรไบโอติก</div><div class="ri-desc">เสริมจุลินทรีย์ดีในลำไส้</div></div>
+          <span class="ri-tag tag-food">อาหาร</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Care -->
+  <div class="routine-section">
+    <div class="rs-head"><span class="rs-emoji">💧</span><span class="rs-title">ดูแลสุขภาพ</span><span class="rs-score tag-care" id="care-score">0/3</span></div>
+    <div class="rs-body">
+      <div class="frow">
+        <label class="flabel">ดื่มน้ำวันนี้</label>
+        <div class="water-row">
+          <div class="water-glasses" id="water-glasses">
+            <span class="wg" onclick="setWater(1)">💧</span>
+            <span class="wg" onclick="setWater(2)">💧</span>
+            <span class="wg" onclick="setWater(3)">💧</span>
+            <span class="wg" onclick="setWater(4)">💧</span>
+            <span class="wg" onclick="setWater(5)">💧</span>
+            <span class="wg" onclick="setWater(6)">💧</span>
+            <span class="wg" onclick="setWater(7)">💧</span>
+            <span class="wg" onclick="setWater(8)">💧</span>
+          </div>
+          <span class="water-label" id="water-label">0/8 แก้ว</span>
+        </div>
+      </div>
+      <div class="ri">
+        <div class="ri-check" id="rc-nasal" onclick="toggleRI('nasal')"></div>
+        <div class="ri-info"><div class="ri-name">ล้างจมูกเช้า-เย็น</div><div class="ri-desc">น้ำเกลือล้างฝุ่นและน้ำมูกที่ค้าง</div></div>
+        <span class="ri-tag tag-care">ดูแล</span>
+      </div>
+      <div class="ri">
+        <div class="ri-check" id="rc-meds" onclick="toggleRI('meds')"></div>
+        <div class="ri-info"><div class="ri-name">กิน Telfast แล้ว</div><div class="ri-desc">กับน้ำเปล่า ไม่ใช่น้ำผลไม้</div></div>
+        <span class="ri-tag tag-care">ยา</span>
+      </div>
+      <div class="ri">
+        <div class="ri-check" id="rc-room" onclick="toggleRI('room')"></div>
+        <div class="ri-info"><div class="ri-name">ทำความสะอาดห้องนอน</div><div class="ri-desc">ปัดฝุ่น เช็ดพื้น ลดไรฝุ่น</div></div>
+        <span class="ri-tag tag-care">ดูแล</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Exercise -->
+  <div class="routine-section">
+    <div class="rs-head"><span class="rs-emoji">🏃</span><span class="rs-title">การออกกำลังกาย</span><span class="rs-score tag-move" id="move-score">0/2</span></div>
+    <div class="rs-body">
+      <div class="ri">
+        <div class="ri-check" id="rc-walk" onclick="toggleRI('walk')"></div>
+        <div class="ri-info"><div class="ri-name">เดิน/ออกกำลังกาย 30 นาที</div><div class="ri-desc">กระตุ้นภูมิคุ้มกัน ลดความเครียด</div></div>
+        <span class="ri-tag tag-move">ออกกำลัง</span>
+      </div>
+      <div class="ri">
+        <div class="ri-check" id="rc-stretch" onclick="toggleRI('stretch')"></div>
+        <div class="ri-info"><div class="ri-name">ยืดเส้นก่อนนอน 10 นาที</div><div class="ri-desc">ผ่อนคลาย นอนหลับลึกขึ้น</div></div>
+        <span class="ri-tag tag-move">ออกกำลัง</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="save-routine-btn" onclick="saveRoutine()">💾 บันทึก Routine วันนี้</button>
+</div>
+
+<!-- ── STATS ── -->
+<div class="page" id="page-stats">
+  <div class="stats-grid">
+    <div class="scard"><div class="snum" id="st-total" style="color:var(--blue)">0</div><div class="slabel">ครั้งทั้งหมด</div></div>
+    <div class="scard"><div class="snum" id="st-week" style="color:var(--green)">0</div><div class="slabel">สัปดาห์นี้</div></div>
+    <div class="scard"><div class="snum" id="st-sev" style="color:var(--red)">0</div><div class="slabel">ครั้งรุนแรง</div></div>
+    <div class="scard"><div class="snum" id="st-routine" style="color:var(--gold)">0%</div><div class="slabel">Routine เฉลี่ย</div></div>
+  </div>
+  <div class="chart-card"><div class="ctitle">🤧 อาการที่พบบ่อย</div><div id="sym-chart"></div></div>
+  <div class="chart-card"><div class="ctitle">⚡ สาเหตุที่เกิดบ่อย</div><div id="trig-chart"></div></div>
+  <div class="chart-card"><div class="ctitle">📅 ความรุนแรง 7 วันล่าสุด</div><div id="sev-chart"></div></div>
+  <div class="chart-card"><div class="ctitle">✅ Routine 7 วันล่าสุด</div><div id="routine-chart"></div></div>
+</div>
+
+</div><!-- end content -->
+
+<!-- Bottom nav -->
+<div class="bottom-nav">
+  <button class="bnav active" id="bn-guide" onclick="switchTab('guide')"><span class="bnav-ic">📖</span>คู่มือ</button>
+  <button class="bnav" id="bn-log" onclick="switchTab('log')"><span class="bnav-ic">✏️</span>บันทึก</button>
+  <button class="bnav" id="bn-routine" onclick="switchTab('routine')"><span class="bnav-ic">🌅</span>Routine</button>
+  <button class="bnav" id="bn-stats" onclick="switchTab('stats')"><span class="bnav-ic">📊</span>สถิติ</button>
+</div>
+<div class="home-ind"><div class="home-bar"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STORAGE KEYS ───
+const K_LOG = 'al_logs';
+const K_ROUTINE = 'al_routines';
+
+function load(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch{ return []; } }
+function save(k,v){ localStorage.setItem(k,JSON.stringify(v)); }
+
+// ─── STATE ───
+let curSev = 0;
+let waterCount = 0;
+const riState = {};
+const TABS = ['guide','log','routine','stats'];
+
+// ─── CLOCK ───
+function tick(){ const n=new Date(); document.getElementById('clock').textContent=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0'); }
+tick(); setInterval(tick,10000);
+
+// ─── ROUTINE DATE ───
+function setRoutineDate(){
+  const n=new Date();
+  document.getElementById('routine-date-label').textContent = n.toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+setRoutineDate();
+
+// ─── TABS ───
+function switchTab(name){
+  TABS.forEach(t=>{
+    document.getElementById('page-'+t).classList.toggle('active',t===name);
+    document.getElementById('bn-'+t).classList.toggle('active',t===name);
+  });
+  document.querySelectorAll('.tab').forEach((tb,i)=>tb.classList.toggle('active',TABS[i]===name));
+  if(name==='log') renderHistory();
+  if(name==='stats') renderStats();
+  if(name==='routine') loadTodayRoutine();
+}
+
+// ─── GUIDE ACCORDION ───
+function toggleSec(id){ document.getElementById(id).classList.toggle('open'); }
+
+// ─── CHIPS ───
+function toggleC(el){ el.classList.toggle('sel'); }
+function setSev(el,v){ document.querySelectorAll('.sev-btn').forEach(b=>b.classList.remove('sel')); el.classList.add('sel'); curSev=v; }
+
+// ─── SAVE LOG ───
+function saveLog(){
+  const syms=[...document.querySelectorAll('#sym-chips .sel')].map(e=>e.textContent.trim());
+  const trigs=[...document.querySelectorAll('#trig-chips .sel')].map(e=>e.textContent.trim());
+  const note=document.getElementById('note-in').value.trim();
+  if(!syms.length){showToast('⚠️ เลือกอาการอย่างน้อย 1 อย่าง');return;}
+  if(!curSev){showToast('⚠️ เลือกความรุนแรงด้วย');return;}
+  const logs=load(K_LOG);
+  logs.unshift({id:Date.now(),date:new Date().toISOString(),symptoms:syms,severity:curSev,triggers:trigs,note});
+  save(K_LOG,logs);
+  document.querySelectorAll('.chip.sel,.tchip.sel').forEach(c=>c.classList.remove('sel'));
+  document.querySelectorAll('.sev-btn').forEach(b=>b.classList.remove('sel'));
+  document.getElementById('note-in').value=''; curSev=0;
+  renderHistory(); showToast('✅ บันทึกอาการแล้ว!');
+}
+
+// ─── RENDER HISTORY ───
+function renderHistory(){
+  const logs=load(K_LOG);
+  document.getElementById('ecnt').textContent=logs.length+' รายการ';
+  const el=document.getElementById('hist-list');
+  if(!logs.length){ el.innerHTML='<div class="empty"><div class="big">📝</div><p>ยังไม่มีบันทึก<br>กดบันทึกอาการเพื่อเริ่มต้น</p></div>'; return; }
+  el.innerHTML=logs.map(e=>{
+    const d=new Date(e.date);
+    const ds=d.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'})+' '+d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+    const sl=['','🟢 เล็กน้อย','🟡 ปานกลาง','🔴 รุนแรง'][e.severity];
+    const sc=['','sm','smod','ssev'][e.severity];
+    return `<div class="log-entry">
+      <button class="edel" onclick="delLog(${e.id})">✕</button>
+      <div class="entry-top"><div class="entry-date">📅 ${ds}</div><div class="entry-sev ${sc}">${sl}</div></div>
+      <div class="esymp">${e.symptoms.map(s=>`<span class="echip">${s}</span>`).join('')}</div>
+      ${e.triggers.length?`<div class="etrig">⚡ <span>${e.triggers.join(', ')}</span></div>`:''}
+      ${e.note?`<div class="enote">"${e.note}"</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function delLog(id){
+  save(K_LOG,load(K_LOG).filter(e=>e.id!==id));
+  renderHistory(); showToast('🗑 ลบแล้ว');
+}
+
+// ─── ROUTINE ───
+const RI_KEYS=['before11','sleep7','nophone','novit','nojunk','nosugar','yogurt','nasal','meds','room','walk','stretch'];
+const RI_GROUPS={sleep:['before11','sleep7','nophone'],food:['novit','nojunk','nosugar','yogurt'],care:['nasal','meds','room'],move:['walk','stretch']};
+
+function toggleRI(key){
+  riState[key]=!riState[key];
+  const el=document.getElementById('rc-'+key);
+  el.classList.toggle('done',riState[key]);
+  el.textContent=riState[key]?'✓':'';
+  updateRoutineScore();
+}
+
+function updateRoutineScore(){
+  const groups=RI_GROUPS;
+  let total=0, done=0;
+  Object.entries(groups).forEach(([g,keys])=>{
+    const d=keys.filter(k=>riState[k]).length;
+    const t=keys.length; done+=d; total+=t;
+    document.getElementById(g==='move'?'move-score':g+'-score').textContent=d+'/'+t;
+  });
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('score-num').textContent=pct+'%';
+  const circ=document.getElementById('score-circle');
+  const full=213.6;
+  circ.style.strokeDashoffset=full-(full*pct/100);
+  circ.style.stroke=pct>=80?'#6ee7b7':pct>=50?'#fbbf24':'#fca5a5';
+
+  // water bonus
+  const wScore = waterCount>=8?1:0;
+  document.getElementById('care-score').textContent=(groups.care.filter(k=>riState[k]).length+wScore)+'/'+(groups.care.length+1);
+}
+
+function setWater(n){
+  waterCount=n;
+  document.querySelectorAll('.wg').forEach((g,i)=>g.classList.toggle('filled',i<n));
+  document.getElementById('water-label').textContent=n+'/8 แก้ว';
+  updateRoutineScore();
+}
+
+function calcSleep(){
+  const b=document.getElementById('bed-time').value;
+  const w=document.getElementById('wake-time').value;
+  if(!b||!w){return;}
+  const [bh,bm]=b.split(':').map(Number);
+  const [wh,wm]=w.split(':').map(Number);
+  let mins=(wh*60+wm)-(bh*60+bm);
+  if(mins<0) mins+=1440;
+  const h=Math.floor(mins/60), m=mins%60;
+  document.getElementById('sleep-dur').textContent=`⏱ ชั่วโมงนอน: ${h} ชม. ${m} นาที`;
+  // auto-check before11
+  if(bh<23||(bh===22)){
+    riState['before11']=true;
+    document.getElementById('rc-before11').classList.add('done');
+    document.getElementById('rc-before11').textContent='✓';
+  }
+  if(mins>=420){
+    riState['sleep7']=true;
+    document.getElementById('rc-sleep7').classList.add('done');
+    document.getElementById('rc-sleep7').textContent='✓';
+  }
+  updateRoutineScore();
+}
+
+function saveRoutine(){
+  const today=new Date().toDateString();
+  const routines=load(K_ROUTINE).filter(r=>r.day!==today);
+  const total=RI_KEYS.length+1; // +water
+  const done=RI_KEYS.filter(k=>riState[k]).length+(waterCount>=8?1:0);
+  routines.unshift({
+    day:today,date:new Date().toISOString(),
+    checks:{...riState},water:waterCount,
+    bedTime:document.getElementById('bed-time').value,
+    wakeTime:document.getElementById('wake-time').value,
+    meals:{m:document.getElementById('meal-morning').value,n:document.getElementById('meal-noon').value,e:document.getElementById('meal-eve').value},
+    score:Math.round(done/total*100)
+  });
+  save(K_ROUTINE,routines.slice(0,30));
+  showToast('✅ บันทึก Routine แล้ว!');
+}
+
+function loadTodayRoutine(){
+  const today=new Date().toDateString();
+  const r=load(K_ROUTINE).find(x=>x.day===today);
+  if(!r) return;
+  RI_KEYS.forEach(k=>{
+    riState[k]=r.checks[k]||false;
+    const el=document.getElementById('rc-'+k);
+    if(el){el.classList.toggle('done',riState[k]);el.textContent=riState[k]?'✓':'';}
+  });
+  setWater(r.water||0);
+  if(r.bedTime) document.getElementById('bed-time').value=r.bedTime;
+  if(r.wakeTime) document.getElementById('wake-time').value=r.wakeTime;
+  if(r.meals){
+    document.getElementById('meal-morning').value=r.meals.m||'';
+    document.getElementById('meal-noon').value=r.meals.n||'';
+    document.getElementById('meal-eve').value=r.meals.e||'';
+  }
+  calcSleep();
+  updateRoutineScore();
+}
+
+// ─── STATS ───
+function renderStats(){
+  const logs=load(K_LOG);
+  const routines=load(K_ROUTINE);
+  const now=new Date();
+  const weekAgo=new Date(now-7*24*60*60*1000);
+  document.getElementById('st-total').textContent=logs.length;
+  document.getElementById('st-week').textContent=logs.filter(e=>new Date(e.date)>=weekAgo).length;
+  document.getElementById('st-sev').textContent=logs.filter(e=>e.severity===3).length;
+  const avgR=routines.length?Math.round(routines.slice(0,7).reduce((s,r)=>s+r.score,0)/Math.min(routines.length,7)):0;
+  document.getElementById('st-routine').textContent=avgR+'%';
+
+  // symptom chart
+  const sc={}; logs.forEach(e=>e.symptoms.forEach(s=>sc[s]=(sc[s]||0)+1));
+  const ts=Object.entries(sc).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const ms=ts[0]?.[1]||1;
+  document.getElementById('sym-chart').innerHTML=ts.length?ts.map(([s,c])=>`
+    <div class="bar-row"><div class="bar-lbl">${s.replace(/[^\u0E00-\u0E7Fa-z ]/gi,'').trim()}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:${c/ms*100}%;background:var(--blue)"></div></div>
+    <div class="bar-val" style="color:var(--blue)">${c}</div></div>`).join('')
+    :'<div style="color:var(--muted);font-size:12px;text-align:center;padding:14px">ยังไม่มีข้อมูล</div>';
+
+  // trigger chart
+  const tc={}; logs.forEach(e=>e.triggers.forEach(t=>tc[t]=(tc[t]||0)+1));
+  const tt=Object.entries(tc).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  document.getElementById('trig-chart').innerHTML=tt.length?tt.map(([t,c])=>`
+    <div class="trig-row"><div class="tr-name">${t}</div><div class="tr-cnt">${c} ครั้ง</div></div>`).join('')
+    :'<div style="color:var(--muted);font-size:12px;text-align:center;padding:14px">ยังไม่มีข้อมูล</div>';
+
+  // 7-day severity
+  const cols=['transparent','var(--green)','var(--gold)','var(--red)'];
+  const last7=[...Array(7)].map((_,i)=>{
+    const d=new Date(now-(6-i)*24*60*60*1000);
+    const lbl=d.toLocaleDateString('th-TH',{weekday:'short'});
+    const max=logs.filter(e=>new Date(e.date).toDateString()===d.toDateString()).reduce((m,e)=>Math.max(m,e.severity),0);
+    return {lbl,max};
+  });
+  document.getElementById('sev-chart').innerHTML=last7.map(d=>`
+    <div class="bar-row"><div class="bar-lbl">${d.lbl}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:${d.max/3*100}%;background:${cols[d.max]}"></div></div>
+    <div class="bar-val" style="color:${cols[d.max]||'var(--muted)'}">${d.max||'—'}</div></div>`).join('');
+
+  // routine 7 days
+  const r7=[...Array(7)].map((_,i)=>{
+    const d=new Date(now-(6-i)*24*60*60*1000);
+    const lbl=d.toLocaleDateString('th-TH',{weekday:'short'});
+    const r=routines.find(x=>x.day===d.toDateString());
+    return {lbl,score:r?.score||0};
+  });
+  document.getElementById('routine-chart').innerHTML=r7.map(d=>`
+    <div class="bar-row"><div class="bar-lbl">${d.lbl}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:${d.score}%;background:var(--green)"></div></div>
+    <div class="bar-val" style="color:var(--green)">${d.score?d.score+'%':'—'}</div></div>`).join('');
+}
+
+// ─── EXPORT ───
+function exportData(){
+  const data={version:2,exported:new Date().toISOString(),logs:load(K_LOG),routines:load(K_ROUTINE)};
+  const json=JSON.stringify(data);
+  document.getElementById('export-text').value=json;
+  document.getElementById('export-modal').classList.remove('hidden');
+}
+
+function copyExport(){
+  const ta=document.getElementById('export-text');
+  ta.select();
+  try{
+    navigator.clipboard.writeText(ta.value).then(()=>showToast('📋 Copy แล้ว! วางใน Notes ได้เลย')).catch(()=>{
+      document.execCommand('copy'); showToast('📋 Copy แล้ว!');
+    });
+  }catch{ document.execCommand('copy'); showToast('📋 Copy แล้ว!'); }
+}
+
+function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
+
+// ─── IMPORT ───
+function importData(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{ processImport(ev.target.result); };
+  reader.readAsText(file); e.target.value='';
+}
+
+function doImport(){
+  const text=document.getElementById('import-text').value.trim();
+  if(!text){showToast('❌ ยังไม่ได้วาข้อมูล');return;}
+  processImport(text);
+  closeModal('import-modal');
+  document.getElementById('import-text').value='';
+}
+
+function processImport(text){
+  try{
+    const data=JSON.parse(text);
+    if(data.logs) save(K_LOG,data.logs);
+    if(data.routines) save(K_ROUTINE,data.routines);
+    showToast('📥 Import สำเร็จ! '+(data.logs?.length||0)+' รายการ');
+    renderHistory();
+  }catch{ showToast('❌ ข้อมูลไม่ถูกต้อง ลองใหม่'); }
+}
+
+// ─── GOOGLE SHEETS SYNC ───
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbz8IBdZxqI7sNuXbGpr5i4eBVCjKn427gmfMYOqf7d1AKeN1FLyTCEMEv1dSEBw3RIR/exec';
+
+function setSyncStatus(msg, type) {
+  const el = document.getElementById('sync-status');
+  el.textContent = msg;
+  el.className = 'sync-status' + (type ? ' ' + type : '');
+  if (type === 'ok') setTimeout(() => { el.textContent = ''; el.className = 'sync-status'; }, 4000);
+}
+
+async function syncToSheets() {
+  const logs = load(K_LOG);
+  const routines = load(K_ROUTINE);
+  if (!logs.length && !routines.length) { showToast('⚠️ ยังไม่มีข้อมูลที่จะ Sync'); return; }
+
+  setSyncStatus('☁️ กำลัง Sync...', 'loading');
+
+  try {
+    // Sync logs
+    const logRes = await fetch(GAS_URL + '?action=syncLogs&payload=' + encodeURIComponent(JSON.stringify({ action: 'syncLogs', logs })));
+    const logData = await logRes.json();
+
+    // Sync routines
+    const routineRes = await fetch(GAS_URL + '?action=syncRoutines&payload=' + encodeURIComponent(JSON.stringify({ action: 'syncRoutines', routines })));
+    const routineData = await routineRes.json();
+
+    const msg = `✅ Sync สำเร็จ! อาการ ${logData.synced || 0} รายการ, Routine ${routineData.synced || 0} วัน`;
+    setSyncStatus(msg, 'ok');
+    showToast('☁️ Sync ขึ้น Google Sheets แล้ว!');
+
+    // Save last sync time
+    localStorage.setItem('al_last_sync', new Date().toISOString());
+  } catch (err) {
+    setSyncStatus('❌ Sync ไม่สำเร็จ ตรวจสอบ internet', 'err');
+    showToast('❌ Sync ไม่สำเร็จ');
+  }
+}
+
+// ─── TOAST ───
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); }
+
+// init
+renderHistory();
+updateRoutineScore();
+</script>
+</body>
+</html>
